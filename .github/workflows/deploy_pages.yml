@@ -6,6 +6,15 @@ on:
       - main
       - master
   workflow_dispatch:
+    inputs:
+      supabase_url:
+        description: Supabase project URL
+        required: false
+        type: string
+      supabase_anon_key:
+        description: Supabase anon key
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -31,10 +40,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Validate build config
+        env:
+          SUPABASE_URL: ${{ inputs.supabase_url || vars.SUPABASE_URL || secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ inputs.supabase_anon_key || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Set SUPABASE_URL and SUPABASE_ANON_KEY in repository variables/secrets, or provide them when running workflow_dispatch."
+            exit 1
+          fi
+
       - name: Build web app
         env:
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ inputs.supabase_url || vars.SUPABASE_URL || secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ inputs.supabase_anon_key || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
         run: |
           flutter build web --release \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
